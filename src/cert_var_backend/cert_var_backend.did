@@ -1,3 +1,11 @@
+type CertifiedCounter = record {
+    count : int32;
+    certificate : blob;
+    witness : blob;
+};
+
+
 service : {
-    "greet": (text) -> (text) query;
+    "inc": () -> ();
+    "get": () -> (CertifiedCounter) query;
 }

@@ -1,0 +1,12 @@
+[package]
+name = "cert_verify"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+candid = "0.10.8"
+candid_parser = "0.1.4"
+ic-certificate-verification = "2.4.0"
+ic-certification = "2.5.0"
+serde = "1.0.203"
+serde_cbor = "0.11.2"
