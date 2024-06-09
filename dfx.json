@@ -1,0 +1,17 @@
+{
+  "canisters": {
+    "cert_var_backend": {
+      "candid": "src/cert_var_backend/cert_var_backend.did",
+      "package": "cert_var_backend",
+      "type": "rust"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

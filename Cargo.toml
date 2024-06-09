@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/cert_var_backend"
+]
+resolver = "2"
