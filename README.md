@@ -3,6 +3,8 @@ Certified variables [WIP]
 
 This is a PoC canister `cert_var_backend` for using Certified Variables with an example of an counter canister. `cert_verify` demonstrates how you can verify the certification in Rust
 
+> **_NOTE:_** `root_key` and `canister_id` are hardcoded and needs to be changes accordingly during deployment.
+
 ```
 dfx start --background
 
