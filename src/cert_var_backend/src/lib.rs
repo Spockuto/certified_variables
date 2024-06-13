@@ -64,29 +64,28 @@ fn set_user(user: User) -> u64 {
 fn get_user(index: u64) -> CertifiedUser {
     let certificate = ic_cdk::api::data_certificate().expect("No data certificate available");
 
-    let user = TREE.with_borrow_mut(|tree| {
-        if let Some(inner) = tree.get(b"user") {
-            let user = inner.get(&index.to_be_bytes()[..]).expect("User not found");
-            user.to_owned()
-        } else {
-            panic!("Tree isn't initialized");
-        }
-    });
+    TREE.with_borrow(|tree| {
+        let user = match tree.get(b"user") {
+            Some(inner) => {
+                let user = inner.get(&index.to_be_bytes()[..]).expect("User not found");
+                user.to_owned()
+            }
+            None => {
+                panic!("Tree isn't initialized");
+            }
+        };
 
-    let witness = TREE.with(|tree| {
-        let tree = tree.borrow();
         let mut witness = vec![];
         let mut witness_serializer = serde_cbor::Serializer::new(&mut witness);
         let _ = witness_serializer.self_describe();
         tree.nested_witness(b"user", |inner| inner.witness(&index.to_be_bytes()[..]))
             .serialize(&mut witness_serializer)
             .unwrap();
-        witness
-    });
 
-    CertifiedUser {
-        user,
-        certificate,
-        witness,
-    }
+        CertifiedUser {
+            user,
+            certificate,
+            witness,
+        }
+    })
 }

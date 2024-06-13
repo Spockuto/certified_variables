@@ -9,5 +9,5 @@ This is a PoC canister `cert_var_backend` for using Certified Variables with an 
 dfx start --background
 dfx deploy
 
-cargo run -p cert_verify
+cargo run --release -p cert_verify
 ```
