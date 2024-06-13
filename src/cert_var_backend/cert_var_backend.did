@@ -1,11 +1,15 @@
-type CertifiedCounter = record {
-    count : int32;
+type User = record {
+    name: text;
+    age: nat8;
+};
+
+type CertifiedUser = record {
+    user : User;
     certificate : blob;
     witness : blob;
 };
 
-
 service : {
-    "inc": () -> ();
-    "get": () -> (CertifiedCounter) query;
+    "set_user": (User) -> (nat64);
+    "get_user": (nat64) -> (CertifiedUser) query;
 }

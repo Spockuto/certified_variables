@@ -1,42 +1,84 @@
-use candid::IDLArgs;
+use arbitrary::{Arbitrary, Unstructured};
+use candid::Encode;
 use candid::Principal;
 use candid::{CandidType, Decode, Deserialize};
-use candid_parser::parse_idl_args;
+use futures::future::join_all;
+use ic_agent::identity::AnonymousIdentity;
+use ic_agent::Agent;
 use ic_certificate_verification::validate_certificate_time;
 use ic_certificate_verification::VerifyCertificate;
-use ic_certification::hash_tree::leaf_hash;
 use ic_certification::hash_tree::HashTree;
 use ic_certification::{Certificate, LookupResult};
+use rand::prelude::*;
+use serde::Serialize;
 use serde_cbor::Deserializer;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[derive(CandidType, Deserialize, Debug)]
-struct CertifiedCounter {
-    count: i32,
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Arbitrary)]
+struct User {
+    name: String,
+    age: u8,
+}
+
+#[derive(CandidType, Deserialize)]
+struct CertifiedUser {
+    user: User,
     certificate: Vec<u8>,
     witness: Vec<u8>,
 }
 
-fn main() {
-    let cert = std::env::args().nth(1).expect("No candid payload given");
+static URL: &str = "http://localhost:35473";
+static CANISTER: &str = "a3shf-5eaaa-aaaaa-qaafa-cai";
+const MAX_CERT_TIME_OFFSET_NS: u128 = 300_000_000_000; // 5 min
 
-    let root_key: Vec<u8> = vec![
-        48, 129, 130, 48, 29, 6, 13, 43, 6, 1, 4, 1, 130, 220, 124, 5, 3, 1, 2, 1, 6, 12, 43, 6, 1,
-        4, 1, 130, 220, 124, 5, 3, 2, 1, 3, 97, 0, 174, 5, 192, 215, 239, 209, 220, 182, 216, 58,
-        135, 48, 86, 43, 210, 140, 35, 193, 160, 171, 213, 193, 200, 64, 110, 80, 8, 244, 141, 252,
-        88, 82, 134, 87, 94, 165, 148, 93, 76, 163, 21, 221, 249, 252, 171, 157, 206, 40, 19, 158,
-        123, 89, 232, 72, 19, 167, 120, 24, 105, 3, 193, 107, 12, 10, 253, 139, 116, 169, 139, 32,
-        123, 229, 200, 86, 234, 52, 253, 36, 38, 246, 130, 167, 12, 165, 151, 189, 72, 4, 124, 157,
-        74, 43, 24, 154, 227, 199,
-    ];
+#[tokio::main]
+async fn main() {
+    let mut rng = rand::thread_rng();
 
-    let canister_id = Principal::from_text("a3shf-5eaaa-aaaaa-qaafa-cai").unwrap();
-    
-    const MAX_CERT_TIME_OFFSET_NS: u128 = 300_000_000_000; // 5 min
+    let agent = Agent::builder()
+        .with_url(URL)
+        .with_identity(AnonymousIdentity)
+        .build()
+        .expect("Unable to create agent");
 
-    let args: IDLArgs = parse_idl_args(&cert).unwrap();
-    let encoded: Vec<u8> = args.to_bytes().unwrap();
-    let cert_decoded = Decode!(&encoded[..], CertifiedCounter).unwrap();
+    // Only for demo purposes. Hard code when using for IC
+    agent
+        .fetch_root_key()
+        .await
+        .expect("Unable to fetch root key");
+    let root_key = agent.read_root_key();
+
+    let canister_id = Principal::from_text(CANISTER).unwrap();
+
+    // Make 5 random update calls for set_user
+    let mut inc_calls = Vec::new();
+    for i in 0..5 {
+        let bytes: [u8; 16] = rng.gen();
+        let mut u = Unstructured::new(&bytes[..]);
+        let temp_user = User::arbitrary(&mut u).unwrap();
+
+        println!("Calling set_user at {:?} with {:?}", i, temp_user);
+        let response = agent
+            .update(&canister_id, "set_user")
+            .with_effective_canister_id(canister_id)
+            .with_arg(Encode!(&temp_user).unwrap())
+            .call_and_wait();
+        inc_calls.push(response);
+    }
+    join_all(inc_calls).await;
+
+    // call a random index with get_user
+    let index: u64 = rng.gen();
+    let index: u64 = index % 5 + 1;
+
+    let query_response = agent
+        .query(&canister_id, "get_user")
+        .with_effective_canister_id(canister_id)
+        .with_arg(Encode!(&index).unwrap())
+        .call()
+        .await
+        .expect("Unable to call query call get_user");
+    let cert_decoded = Decode!(&query_response, CertifiedUser).unwrap();
 
     let mut deserializer = Deserializer::from_slice(&cert_decoded.certificate);
     let certificate: Certificate = serde::de::Deserialize::deserialize(&mut deserializer).unwrap();
@@ -57,7 +99,7 @@ fn main() {
         "Verification result (Digest match & Signature verification): {:?}",
         verification_result
     );
-    println!("Time verification result {:?}", time_verification_result);
+    println!("Time skew: {:?}", time_verification_result);
 
     // Check if witness is in the tree
     let lookup_result = certificate.tree.lookup_path([
@@ -78,17 +120,19 @@ fn main() {
     };
 
     println!(
-        "Witness roothash mataches certified data: {:?} ",
+        "Witness root_hash mataches certified data: {:?} ",
         witness_digest == cert_var
     );
 
-    let witness_lookup: [u8; 32] = match witness_decoded.lookup_path(["counter".as_bytes()]) {
-        LookupResult::Found(result) => result.try_into().unwrap(),
-        _ => panic!("Key counter not found"),
-    };
+    let witness_lookup: User =
+        match witness_decoded.lookup_path([b"user", &index.to_be_bytes()[..]]) {
+            LookupResult::Found(result) => serde_cbor::from_slice(result).unwrap(),
+            _ => panic!("user {} not found", index),
+        };
 
     println!(
-        "Witness data matches count value: {:?}",
-        witness_lookup == leaf_hash(&cert_decoded.count.to_be_bytes())
+        "Witness data matches User value: {:?}",
+        witness_lookup == cert_decoded.user
     );
+    println!("Result: {:?}", cert_decoded.user);
 }
