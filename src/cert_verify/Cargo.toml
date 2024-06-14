@@ -14,4 +14,4 @@ ic-certification = "2.5.0"
 rand = "0.8.5"
 serde = "1.0.203"
 serde_cbor = "0.11.2"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.38.0", features = ["macros"] }
