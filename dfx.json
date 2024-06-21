@@ -4,12 +4,16 @@
       "candid": "src/cert_var_backend/cert_var_backend.did",
       "package": "cert_var_backend",
       "type": "rust"
+    },
+    "cert_var_mo": {
+      "main": "src/cert_var_mo/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {
     "build": {
       "args": "",
-      "packtool": ""
+      "packtool": "mops sources"
     }
   },
   "output_env_file": ".env",

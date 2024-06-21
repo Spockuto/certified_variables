@@ -26,8 +26,8 @@ const idlFactory = ({ IDL }) => {
   });
 };
 
-const canisterId = Principal.fromText("a3shf-5eaaa-aaaaa-qaafa-cai");
-const host = "http://localhost:35777";
+const canisterId = Principal.fromText("c2lt4-zmaaa-aaaaa-qaaiq-cai");
+const host = "http://localhost:42143";
 
 start().await;
 
