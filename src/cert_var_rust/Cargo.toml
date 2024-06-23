@@ -1,5 +1,5 @@
 [package]
-name = "cert_var_backend"
+name = "cert_var_rust"
 version = "0.1.0"
 edition = "2021"
 

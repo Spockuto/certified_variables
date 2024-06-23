@@ -348,7 +348,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96c51067fd44124faa7f870b4b1c969379ad32b2ba805aa959430ceaa384f695"
 
 [[package]]
-name = "cert_var_backend"
+name = "cert_var_rust"
 version = "0.1.0"
 dependencies = [
  "candid",
@@ -359,7 +359,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cert_verify"
+name = "cert_verify_rust"
 version = "0.1.0"
 dependencies = [
  "arbitrary",

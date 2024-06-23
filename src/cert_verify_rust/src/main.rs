@@ -26,8 +26,8 @@ struct CertifiedUser {
     witness: Vec<u8>,
 }
 
-static URL: &str = "http://localhost:42143";
-static CANISTER: &str = "a3shf-5eaaa-aaaaa-qaafa-cai";
+static URL: &str = "http://localhost:42783";
+static CANISTER: &str = "ajuq4-ruaaa-aaaaa-qaaga-cai";
 const MAX_CERT_TIME_OFFSET_NS: u128 = 300_000_000_000; // 5 min
 const MAX_CALLS: usize = 10;
 

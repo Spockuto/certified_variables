@@ -1,8 +1,8 @@
 [workspace]
 
 members = [
-    "src/cert_var_backend",
-    "src/cert_verify"
+    "src/cert_var_rust",
+    "src/cert_verify_rust"
 ]
 
 resolver = "2"
